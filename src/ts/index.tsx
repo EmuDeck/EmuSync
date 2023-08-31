@@ -1,106 +1,57 @@
 import {
-  ButtonItem,
-  definePlugin,
-  DialogButton,
-  Menu,
-  MenuItem,
-  PanelSection,
-  PanelSectionRow,
-  Router,
-  ServerAPI,
-  showContextMenu,
-  staticClasses,
-  Navigation
+    afterPatch, beforePatch,
+    definePlugin,
+    findModuleChild,
+    ServerAPI,
+    staticClasses
 } from "decky-frontend-lib";
-import { VFC } from "react";
-import { FaShip } from "react-icons/fa";
-
-import logo from "../../assets/logo.png";
+import {FaShip} from "react-icons/fa";
 
 // interface AddMethodArgs {
 //   left: number;
 //   right: number;
 // }
 
-const Content: VFC<{ serverAPI: ServerAPI }> = ({}) => {
-  // const [result, setResult] = useState<number | undefined>();
+declare global {
+    const appStore: {
+        allApps: { __proto__: any }[]
+    };
+}
 
-  // const onClick = async () => {
-  //   const result = await serverAPI.callPluginMethod<AddMethodArgs, number>(
-  //     "add",
-  //     {
-  //       left: 2,
-  //       right: 2,
-  //     }
-  //   );
-  //   if (result.success) {
-  //     setResult(result.result);
-  //   }
-  // };
+export default definePlugin((_serverApi: ServerAPI) => {
+    let bypass = false;
+    const he = findModuleChild((m) => {
+        if (typeof m !== 'object')
+            return undefined;
+        for (let prop in m) {
+            if (prop == "Db")
+                return m[prop]
+        }
+    });
 
-  return (
-    <PanelSection title="Panel Section">
-      <PanelSectionRow>
-        <ButtonItem
-          layout="below"
-          onClick={(e) =>
-            showContextMenu(
-              <Menu label="Menu" cancelText="CAAAANCEL" onCancel={() => {}}>
-                <MenuItem onSelected={() => {}}>Item #1</MenuItem>
-                <MenuItem onSelected={() => {}}>Item #2</MenuItem>
-                <MenuItem onSelected={() => {}}>Item #3</MenuItem>
-              </Menu>,
-              e.currentTarget ?? window
-            )
-          }
-        >
-          Server says yolo
-        </ButtonItem>
-      </PanelSectionRow>
-
-      <PanelSectionRow>
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <img src={logo} />
-        </div>
-      </PanelSectionRow>
-
-      <PanelSectionRow>
-        <ButtonItem
-          layout="below"
-          onClick={() => {
-            Router.CloseSideMenus();
-            Router.Navigate("/decky-plugin-test");
-          }}
-        >
-          Router
-        </ButtonItem>
-      </PanelSectionRow>
-    </PanelSection>
-  );
-};
-
-const DeckyPluginRouterTest: VFC = () => {
-  return (
-    <div style={{ marginTop: "50px", color: "white" }}>
-      Hello World!
-      <DialogButton onClick={() => Navigation.NavigateToLibraryTab()}>
-        Go to Library
-      </DialogButton>
-    </div>
-  );
-};
-
-export default definePlugin((serverApi: ServerAPI) => {
-  serverApi.routerHook.addRoute("/decky-plugin-test", DeckyPluginRouterTest, {
-    exact: true,
-  });
-
-  return {
-    title: <div className={staticClasses.Title}>Example Plugin</div>,
-    content: <Content serverAPI={serverApi} />,
-    icon: <FaShip />,
-    onDismount() {
-      serverApi.routerHook.removeRoute("/decky-plugin-test");
-    },
-  };
+    const a = afterPatch(he, "type", (_, ret) => {
+        bypass = false;
+        return ret;
+    });
+    const b = beforePatch(he, "type", (_) => {
+        bypass = true;
+    });
+    const c = afterPatch(appStore.allApps[0].__proto__, "BIsModOrShortcut", (_, ret) => {
+        if (ret === true)
+        {
+            if (bypass)
+                return false;
+        }
+        return ret;
+    });
+    return {
+        title: <div className={staticClasses.Title}>EmuSync</div>,
+        content: <div/>,
+        icon: <FaShip/>,
+        onDismount() {
+            a.unpatch();
+            b.unpatch();
+            c.unpatch();
+        },
+    };
 });

@@ -40,12 +40,15 @@ __pycache__/
 yalc.lock
 
 .vscode/settings.json
+.pnpm-store
 
 # Ignore output folder
 
+defaults/**.py
 main.py
 
 backend/out
+out
 build
 
 deck.json
