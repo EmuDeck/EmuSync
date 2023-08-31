@@ -46,7 +46,7 @@ yalc.lock
 
 defaults/**.py
 main.py
-
+!src/py/**
 backend/out
 out
 build
